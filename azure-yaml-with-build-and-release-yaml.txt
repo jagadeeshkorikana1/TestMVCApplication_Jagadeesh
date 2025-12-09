@@ -19,6 +19,30 @@ stages:
   - job: BuildJob
     displayName: 'Building the Project'
     steps:
+
+# If the agent might not have Chocolatey:
+    - task: PowerShell@2
+      displayName: 'Install Chocolatey (if missing)'
+      inputs:
+        targetType: 'inline'
+        script: |
+          if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+            iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+          }
+
+    - task: PowerShell@2
+      displayName: 'Install .NET Framework 4.6.1 Developer Pack'
+      inputs:
+        targetType: 'inline'
+        script: |
+          choco install netfx-4.6.1-devpack -y --no-progress
+          # Optional: verify reference assemblies exist
+          $refPath = 'C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1'
+          if (!(Test-Path $refPath)) {
+            Write-Error "Reference assemblies for .NET Framework 4.6.1 not found at $refPath"
+          }
     - task: NuGetToolInstaller@1
 
     - task: NuGetCommand@2
